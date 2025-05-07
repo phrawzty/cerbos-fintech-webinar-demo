@@ -1,0 +1,110 @@
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  resource: "account"
+  version: "default"
+  # This file doesn't reference any derived roles, currently.
+  #importDerivedRoles:
+  #  - banking_roles
+  rules:
+    # --- Deny Rules First ---
+    - actions: ["create_loan"]
+      effect: EFFECT_DENY
+      roles: ["branch_manager"]
+      name: "branch-manager-deny-create-loan"
+
+    - actions: ["manage"]
+      effect: EFFECT_DENY
+      roles: ["loan_officer"]
+      name: "loan-officer-deny-manage"
+
+    - actions: ["approve_loan"]
+      effect: EFFECT_DENY
+      roles: ["loan_officer"]
+      name: "loan-officer-deny-large-risky-loan-approval"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.branchId == request.resource.attr.branchId
+              - expr: request.principal.id == request.resource.attr.ownerId
+              - any:
+                  of:
+                    - expr: request.resource.attr.loanAmount > 5000
+                    - expr: request.resource.attr.riskScore > 10
+
+
+    # --- Auditor Rules ---
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["auditor"]
+      name: "auditor-read-all"
+
+    # --- Branch Manager Rules ---
+    - actions: ["read", "manage"]
+      effect: EFFECT_ALLOW
+      roles: ["branch_manager"]
+      name: "branch-manager-access-branch-accounts"
+      condition:
+        match:
+          expr: request.principal.attr.branchId == request.resource.attr.branchId
+
+    - actions: ["approve_loan"]
+      effect: EFFECT_ALLOW
+      roles: ["branch_manager"]
+      name: "branch-manager-approve-any-loan-in-branch"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.branchId == request.resource.attr.branchId
+              - any:
+                  of:
+                    - expr: request.resource.attr.loanAmount > 5000
+                    - expr: request.resource.attr.riskScore > 10
+
+
+    # --- Loan Officer Rules ---
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["loan_officer"]
+      name: "loan-officer-read-own-accounts-in-branch"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.branchId == request.resource.attr.branchId
+              - expr: request.principal.id == request.resource.attr.ownerId
+
+    - actions: ["create_loan"]
+      effect: EFFECT_ALLOW
+      roles: ["loan_officer"]
+      name: "loan-officer-create-loan-own-accounts-in-branch"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.branchId == request.resource.attr.branchId
+              - expr: request.principal.id == request.resource.attr.ownerId
+
+    - actions: ["approve_loan"]
+      effect: EFFECT_ALLOW
+      roles: ["loan_officer"]
+      name: "loan-officer-approve-small-low-risk-loan"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.branchId == request.resource.attr.branchId
+              - expr: request.principal.id == request.resource.attr.ownerId
+              - expr: request.resource.attr.loanAmount <= 5000
+              - expr: request.resource.attr.riskScore <= 10
+
+
+    # --- Customer Support Agent Rules ---
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["customer_support_agent"]
+      name: "support-agent-read-assigned-branch-accounts"
+      condition:
+        match:
+          expr: request.resource.attr.branchId in request.principal.attr.assignedBranchIds

@@ -1,0 +1,17 @@
+apiVersion: api.cerbos.dev/v1
+derivedRoles:
+  name: banking_roles
+  definitions:
+    # Derived Role for Junior Trader Level
+    - name: junior_trader_level
+      parentRoles: ["trader"] # Only applies to principals with the 'trader' role
+      condition:
+        match:
+          expr: request.principal.attr.level == "junior"
+
+    # Derived Role for Senior Trader Level
+    - name: senior_trader_level
+      parentRoles: ["trader"] # Only applies to principals with the 'trader' role
+      condition:
+        match:
+          expr: request.principal.attr.level == "senior"

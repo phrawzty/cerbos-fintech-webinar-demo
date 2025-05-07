@@ -1,0 +1,119 @@
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  resource: "trade"
+  version: "default"
+  importDerivedRoles:
+    - banking_roles
+  rules:
+    # --- Explicit DENY Rules ---
+    - actions: ["create"]
+      effect: EFFECT_DENY
+      roles: ["auditor"]
+      name: "auditor-deny-create-trade"
+
+    - actions: ["create"]
+      effect: EFFECT_DENY
+      derivedRoles: ["junior_trader_level"] # Specifically junior
+      name: "junior-trader-deny-over-max-limit"
+      condition:
+        match:
+          expr: request.resource.attr.amount > 50000
+
+    - actions: ["create"]
+      effect: EFFECT_DENY
+      derivedRoles: ["senior_trader_level"] # Specifically senior
+      name: "senior-trader-deny-over-max-limit"
+      condition:
+        match:
+          expr: request.resource.attr.amount > 200000
+
+    - actions: ["approve"]
+      effect: EFFECT_DENY
+      roles: ["trade_manager"]
+      name: "trade-manager-deny-unmanaged-trader-approval"
+      condition:
+        match:
+          expr: "!(request.resource.attr.traderId in request.principal.attr.managesTraderIds)"
+
+
+    # --- Auditor & Manager Read Rules ---
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["auditor", "trade_manager"]
+      name: "auditor-trade-manager-read-all-trades"
+
+
+    # --- Junior Trader Rules ---
+
+    # Tier 1: Self-Approved Trades (<= 10k)
+    - actions: ["approve", "create", "read"]
+      effect: EFFECT_ALLOW
+      derivedRoles: ["junior_trader_level"]
+      name: "junior-trader-manage-self-approved-trade"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.id == request.resource.attr.traderId
+              - expr: request.resource.attr.amount <= 10000
+              - expr: request.auxData.jwt.now_hour >= 8 && request.auxData.jwt.now_hour < 18
+              - expr: request.resource.attr.currency == request.principal.attr.localCurrency
+
+    # Tier 2: Create/Read Only (> 10k and <= 50k)
+    - actions: ["create", "read"]
+      effect: EFFECT_ALLOW
+      derivedRoles: ["junior_trader_level"]
+      name: "junior-trader-create-read-pending-approval-trade"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.id == request.resource.attr.traderId
+              - expr: request.resource.attr.amount > 10000
+              - expr: request.resource.attr.amount <= 50000
+              - expr: request.auxData.jwt.now_hour >= 8 && request.auxData.jwt.now_hour < 18
+              - expr: request.resource.attr.currency == request.principal.attr.localCurrency
+
+
+    # --- Senior Trader Rules ---
+
+    # Tier 1: Self-Approved Trades (<= 125k)
+    - actions: ["approve", "create", "read"]
+      effect: EFFECT_ALLOW
+      derivedRoles: ["senior_trader_level"]
+      name: "senior-trader-manage-self-approved-trade"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.id == request.resource.attr.traderId
+              - expr: request.resource.attr.amount <= 125000
+              - expr: >
+                  request.resource.attr.currency == request.principal.attr.localCurrency ||
+                  request.resource.attr.currency in ["USD", "EUR", "GBP", "ZAR"]
+
+    # Tier 2: Create/Read Only (> 125k and <= 200k)
+    - actions: ["create", "read"]
+      effect: EFFECT_ALLOW
+      derivedRoles: ["senior_trader_level"]
+      name: "senior-trader-create-read-pending-approval-trade"
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.id == request.resource.attr.traderId
+              - expr: request.resource.attr.amount > 125000
+              - expr: request.resource.attr.amount <= 200000
+              - expr: >
+                  request.resource.attr.currency == request.principal.attr.localCurrency ||
+                  request.resource.attr.currency in ["USD", "EUR", "GBP", "ZAR"]
+
+
+    # --- Trade Manager Rules ---
+    - actions: ["approve"]
+      effect: EFFECT_ALLOW
+      roles: ["trade_manager"]
+      name: "trade-manager-approve-managed-trader-trade"
+      condition:
+        match:
+          expr: request.resource.attr.traderId in request.principal.attr.managesTraderIds

@@ -1,0 +1,13 @@
+auxData:
+  current_time_trading_hours:
+    jwt:
+      # Simplified: Real JWT would contain this, extracted by Cerbos config
+      # Use a time during trading hours (e.g., 10:00)
+      now_hour: 10
+      now_iso: "2024-01-15T10:00:00Z" # Optional full timestamp
+
+  current_time_outside_hours:
+    jwt:
+      # Use a time outside trading hours (e.g., 20:00)
+      now_hour: 20
+      now_iso: "2024-01-15T20:00:00Z" # Optional full timestamp

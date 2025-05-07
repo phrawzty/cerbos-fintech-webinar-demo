@@ -1,0 +1,195 @@
+name: BankingAuthorizationSuite
+description: Tests authorization rules for various banking roles and resources (Two Tier Limits)
+tests:
+  - name: JuniorTraderAccess_TradingHours
+    description: Verify junior trader permissions during trading hours (Two Tier Limits)
+    input:
+      principals: ["junior_trader_grace"]
+      resources: ["trade_grace_small_kes", "trade_grace_medium_kes", "trade_grace_large_kes", "trade_grace_huge_kes", "trade_grace_usd", "trade_heidi_large_ngn"]
+      actions: ["create", "approve", "read"]
+      auxData: "current_time_trading_hours"
+    expected:
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_small_kes" # 5k <= 10k: Tier 1
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_ALLOW # Self-approved
+          read: EFFECT_ALLOW
+
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_medium_kes" # 40k: > 10k AND <= 50k: Tier 2
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_DENY # Needs manager approval
+          read: EFFECT_ALLOW
+
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_large_kes" # 15k: > 10k AND <= 50k: Tier 2
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_DENY # Needs manager approval
+          read: EFFECT_ALLOW
+
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_huge_kes" # 60k: > 50k (Max limit)
+        actions:
+          create: EFFECT_DENY # Denied by max limit rule
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_usd" # Wrong currency
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+      - principal: "junior_trader_grace"
+        resource: "trade_heidi_large_ngn" # Does not own
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+  - name: JuniorTraderAccess_OutsideHours
+    description: Verify junior trader permissions outside trading hours (Two Tier Limits)
+    input:
+      principals: ["junior_trader_grace"]
+      resources: ["trade_grace_small_kes", "trade_grace_medium_kes"]
+      actions: ["create", "read", "approve"]
+      auxData: "current_time_outside_hours"
+    expected:
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_small_kes" # Outside hours
+        actions:
+          create: EFFECT_DENY
+          read: EFFECT_DENY
+          approve: EFFECT_DENY
+      - principal: "junior_trader_grace"
+        resource: "trade_grace_medium_kes" # Outside hours
+        actions:
+          create: EFFECT_DENY
+          read: EFFECT_DENY
+          approve: EFFECT_DENY
+
+  - name: SeniorTraderAccess
+    description: Verify senior trader permissions (Two Tier Limits)
+    input:
+      principals: ["senior_trader_heidi"]
+      resources: ["trade_heidi_large_ngn", "trade_heidi_medium_usd", "trade_heidi_large_usd", "trade_heidi_huge_usd", "trade_heidi_invalid_currency", "trade_grace_small_kes"]
+      actions: ["create", "approve", "read"]
+    expected:
+      - principal: "senior_trader_heidi"
+        resource: "trade_heidi_large_ngn" # 100k <= 125k: Tier 1
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_ALLOW # Self-approved
+          read: EFFECT_ALLOW
+
+      - principal: "senior_trader_heidi"
+        resource: "trade_heidi_medium_usd" # 180k: > 125k AND <= 200k: Tier 2
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_DENY # Needs manager approval
+          read: EFFECT_ALLOW
+
+      - principal: "senior_trader_heidi"
+        resource: "trade_heidi_large_usd" # 110k <= 125k: Tier 1
+        actions:
+          create: EFFECT_ALLOW
+          approve: EFFECT_ALLOW # Self-approved
+          read: EFFECT_ALLOW
+
+      - principal: "senior_trader_heidi"
+        resource: "trade_heidi_huge_usd" # 210k: > 200k (Max limit)
+        actions:
+          create: EFFECT_DENY # Denied by max limit rule
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+      - principal: "senior_trader_heidi"
+        resource: "trade_heidi_invalid_currency" # Invalid currency
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+      - principal: "senior_trader_heidi"
+        resource: "trade_grace_small_kes" # Does not own
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY
+          read: EFFECT_DENY
+
+  - name: TradeManagerAccess
+    description: Verify trade manager permissions (Two Tier Limits)
+    input:
+      principals: ["trade_manager_ivan", "trade_manager_judy"]
+      resources: ["trade_grace_small_kes", "trade_grace_medium_kes", "trade_grace_large_kes", "trade_heidi_medium_usd", "trade_heidi_huge_usd"]
+      actions: ["create", "approve", "read"]
+    expected:
+      # Ivan checks (manages grace)
+      - principal: "trade_manager_ivan"
+        resource: "trade_grace_small_kes" # Grace's trade, Ivan manages
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_ALLOW # Can approve ANY managed trade
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_ivan"
+        resource: "trade_grace_medium_kes" # Grace's trade, Ivan manages
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_ALLOW # Can approve ANY managed trade
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_ivan"
+        resource: "trade_grace_large_kes" # Grace's trade, Ivan manages
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_ALLOW # Can approve ANY managed trade
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_ivan"
+        resource: "trade_heidi_medium_usd" # Heidi's trade, Ivan doesn't manage
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY # Denied by unmanaged rule
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_ivan"
+        resource: "trade_heidi_huge_usd" # Heidi's trade (>200k), Ivan doesn't manage
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY # Denied by unmanaged rule
+          read: EFFECT_ALLOW
+
+      # Judy checks (manages heidi)
+      - principal: "trade_manager_judy"
+        resource: "trade_grace_small_kes" # Grace's trade, Judy doesn't manage
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY # Denied by unmanaged rule
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_judy"
+        resource: "trade_grace_medium_kes" # Grace's trade, Judy doesn't manage
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY # Denied by unmanaged rule
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_judy"
+        resource: "trade_grace_large_kes"
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_DENY
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_judy"
+        resource: "trade_heidi_medium_usd" # Heidi's trade, Judy manages
+        actions:
+          create: EFFECT_DENY
+          approve: EFFECT_ALLOW # Can approve ANY managed trade
+          read: EFFECT_ALLOW
+      - principal: "trade_manager_judy"
+        resource: "trade_heidi_huge_usd" # Heidi's trade (>200k), Judy manages
+        actions:
+          create: EFFECT_DENY
+          # Managers can approve even if the trade creation would have been denied due to limits,
+          # assuming the trade object exists in a "pending approval" state.
+          approve: EFFECT_ALLOW
+          read: EFFECT_ALLOW

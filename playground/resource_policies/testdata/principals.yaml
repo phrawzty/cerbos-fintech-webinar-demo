@@ -1,0 +1,76 @@
+principals:
+  loan_officer_alice:
+    id: alice
+    roles: ["loan_officer", "employee"]
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      department: "Loans"
+
+  loan_officer_bob:
+    id: bob
+    roles: ["loan_officer", "employee"]
+    attr:
+      branchId: "BRANCH_LAGOS_NGA"
+      department: "Loans"
+
+  branch_manager_carol:
+    id: carol
+    roles: ["branch_manager", "employee"]
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      department: "Management"
+
+  branch_manager_dave:
+    id: dave
+    roles: ["branch_manager", "employee"]
+    attr:
+      branchId: "BRANCH_LAGOS_NGA"
+      department: "Management"
+
+  auditor_eve:
+    id: eve
+    roles: ["auditor", "employee"]
+    attr:
+      department: "Audit"
+      region: "Africa"
+
+  support_agent_frank:
+    id: frank
+    roles: ["customer_support_agent", "employee"]
+    attr:
+      department: "Support"
+      assignedBranchIds: ["BRANCH_NAIROBI_KEN", "BRANCH_KAMPALA_UGA"]
+
+  junior_trader_grace:
+    id: grace
+    roles: ["trader", "employee"] # Generic 'trader' role
+    attr:
+      level: "junior" # Used in a Derived Role
+      department: "Trading"
+      localCurrency: "KES"
+      branchId: "TRADING_FLOOR_NAIROBI"
+
+  senior_trader_heidi:
+    id: heidi
+    roles: ["trader", "employee"] # Feneric 'trader' role
+    attr:
+      level: "senior" # Used in a Derived Role
+      department: "Trading"
+      localCurrency: "NGN"
+      branchId: "TRADING_FLOOR_LAGOS"
+
+  trade_manager_ivan:
+    id: ivan
+    roles: ["trade_manager", "employee"]
+    attr:
+      department: "Trading"
+      branchId: "TRADING_FLOOR_NAIROBI"
+      managesTraderIds: ["grace"]
+
+  trade_manager_judy:
+    id: judy
+    roles: ["trade_manager", "employee"]
+    attr:
+      department: "Trading"
+      branchId: "TRADING_FLOOR_LAGOS"
+      managesTraderIds: ["heidi"]

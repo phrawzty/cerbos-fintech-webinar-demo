@@ -1,0 +1,157 @@
+resources:
+  # Account Resources
+  account_alice_1:
+    kind: account
+    id: acc_a1
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      ownerId: "alice"
+      balance: 10000
+      currency: "KES"
+      loanAmount: 4000
+      riskScore: 5
+
+  account_alice_2_large_loan:
+    kind: account
+    id: acc_a2
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      ownerId: "alice"
+      balance: 15000
+      currency: "KES"
+      loanAmount: 6000
+      riskScore: 5
+
+  account_alice_3_high_risk:
+    kind: account
+    id: acc_a3
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      ownerId: "alice"
+      balance: 2000
+      currency: "KES"
+      loanAmount: 3000
+      riskScore: 11
+
+  account_other_branch:
+    kind: account
+    id: acc_b1
+    attr:
+      branchId: "BRANCH_LAGOS_NGA"
+      ownerId: "bob"
+      balance: 50000
+      currency: "NGN"
+
+  account_unowned_in_branch:
+    kind: account
+    id: acc_c1
+    attr:
+      branchId: "BRANCH_NAIROBI_KEN"
+      ownerId: "charlie"
+      balance: 7500
+      currency: "KES"
+
+  # Trade Resources
+  trade_grace_small_kes:
+    kind: trade
+    id: trade_g1
+    attr:
+      traderId: "grace"
+      traderRole: "junior_trader"
+      amount: 5000 # <= 10k (Tier 1)
+      currency: "KES"
+      status: "approved" # Self-approved
+
+  trade_grace_large_kes:
+    kind: trade
+    id: trade_g2
+    attr:
+      traderId: "grace"
+      traderRole: "junior_trader"
+      amount: 15000 # > 10k, <= 50k (Tier 2)
+      currency: "KES"
+      status: "pending_approval"
+
+  trade_grace_usd:
+    kind: trade
+    id: trade_g3
+    attr:
+      traderId: "grace"
+      traderRole: "junior_trader"
+      amount: 5000
+      currency: "USD" # Invalid currency for junior
+      status: "failed_validation" # Would likely fail before creation
+
+  # Added Resource
+  trade_grace_medium_kes:
+    kind: trade
+    id: trade_g4
+    attr:
+      traderId: "grace"
+      traderRole: "junior_trader"
+      amount: 40000 # > 10k, <= 50k (Tier 2)
+      currency: "KES"
+      status: "pending_approval"
+
+  # Added Resource
+  trade_grace_huge_kes:
+    kind: trade
+    id: trade_g5
+    attr:
+      traderId: "grace"
+      traderRole: "junior_trader"
+      amount: 60000 # > 50k (Max limit)
+      currency: "KES"
+      status: "failed_validation" # Would likely fail before creation
+
+  trade_heidi_large_ngn:
+    kind: trade
+    id: trade_h1
+    attr:
+      traderId: "heidi"
+      traderRole: "senior_trader"
+      amount: 100000 # <= 125k (Tier 1)
+      currency: "NGN"
+      status: "approved" # Self-approved
+
+  trade_heidi_large_usd:
+    kind: trade
+    id: trade_h2
+    attr:
+      traderId: "heidi"
+      traderRole: "senior_trader"
+      amount: 110000 # <= 125k (Tier 1)
+      currency: "USD"
+      status: "approved" # Self-approved
+
+  # Updated Resource
+  trade_heidi_huge_usd:
+    kind: trade
+    id: trade_h3
+    attr:
+      traderId: "heidi"
+      traderRole: "senior_trader"
+      amount: 210000 # > 200k (Max limit)
+      currency: "USD"
+      status: "failed_validation" # Would likely fail before creation
+
+  trade_heidi_invalid_currency:
+    kind: trade
+    id: trade_h4
+    attr:
+      traderId: "heidi"
+      traderRole: "senior_trader"
+      amount: 10000
+      currency: "JPY" # Invalid currency
+      status: "failed_validation"
+
+  # Added Resource
+  trade_heidi_medium_usd:
+    kind: trade
+    id: trade_h5
+    attr:
+      traderId: "heidi"
+      traderRole: "senior_trader"
+      amount: 180000 # > 125k, <= 200k (Tier 2)
+      currency: "USD"
+      status: "pending_approval"
